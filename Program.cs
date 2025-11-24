@@ -12,12 +12,6 @@ DotEnv.Load();
 var builder = WebApplication.CreateBuilder(args);
 
 var envVars = DotEnv.Read();
-Console.WriteLine("Environment Variables Loaded:");
-foreach (var kvp in envVars)
-{
-    Console.WriteLine($"{kvp.Key}={kvp.Value}");
-}
-Console.WriteLine("-----------------------------");
 
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
@@ -56,6 +50,13 @@ builder.Services.AddCors(options =>
               .AllowAnyHeader()
               .AllowAnyMethod();
     });
+
+    options.AddPolicy("AllowFrontendLocalhost", policy =>
+    {
+        policy.WithOrigins("http://localhost:3000")
+              .AllowAnyHeader()
+              .AllowAnyMethod();
+    });
 });
 
 var app = builder.Build();
@@ -71,6 +72,7 @@ app.UseHttpsRedirection();
 app.UseAuthorization();
 
 app.UseCors("AllowFrontend");
+app.UseCors("AllowFrontendLocalhost");
 
 app.MapControllers();
 
