@@ -1,0 +1,168 @@
+﻿using CarRentalBackend.Data;
+using CarRentalBackend.Migrations;
+using CarRentalBackend.Models;
+using CarRentalBackend.ModelsDto;
+using dotenv.net;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Security.Cryptography;
+using System.Text;
+
+namespace CarRentalBackend.Services
+{
+    public class AuthService(DataContext context, IConfiguration configuration) : IAuthService
+    {
+        public async Task<LoginResponseDto?> LoginAsync(UserDto request)
+        {
+            var user = await context.Users.FirstOrDefaultAsync(u => u.Email.ToLower() == request.Email.ToLower());
+            if (user is null)
+            {
+                return null;
+            }
+
+            var passwordVerificationResult = new PasswordHasher<User>().VerifyHashedPassword(user, user.PasswordHash, request.Password);
+            if (passwordVerificationResult == PasswordVerificationResult.Failed)
+            {
+                return null;
+            }
+
+            var tokens = await CreateTokenResponse(user);
+
+            return new LoginResponseDto
+            {
+                AccessToken = tokens.AccessToken,
+                RefreshToken = tokens.RefreshToken,
+                Email = user.Email,
+                Role = user.Role,
+                Id = user.Id.ToString()
+            };
+        }
+
+        private async Task<TokenResponseDto> CreateTokenResponse(User user)
+        {
+            return new TokenResponseDto
+            {
+                AccessToken = CreateToken(user),
+                RefreshToken = await GenerateAndSaveRefreshTokenAsync(user)
+            };
+        }
+
+        public async Task<User?> RegisterAsync(RegisterUserDto request)
+        {
+            if (request.Password != request.ConfirmPassword)
+            {
+                return null;
+            }
+
+
+            if (await context.Users.AnyAsync(user => user.Email.ToLower() == request.Email.ToLower()))
+            {
+                return null;
+            }
+
+            var user = new User();
+
+            var hashedPassword = new PasswordHasher<User>().HashPassword(user, request.Password);
+
+            user.Email = request.Email;
+            user.PasswordHash = hashedPassword;
+
+            context.Users.Add(user);
+            await context.SaveChangesAsync();
+
+            return user;
+        }
+
+        private string GenerateRefreshToken()
+        {
+            var randomNumber = new byte[32];
+            using var rng = RandomNumberGenerator.Create();
+            rng.GetBytes(randomNumber);
+            return Convert.ToBase64String(randomNumber);
+        }
+
+        private async Task<string> GenerateAndSaveRefreshTokenAsync(User user)
+        {
+            var refreshToken = GenerateRefreshToken();
+
+            user.RefreshToken = refreshToken;
+            user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(7);
+            await context.SaveChangesAsync();
+
+            return refreshToken;
+        }
+
+        private string CreateToken(User user)
+        {
+            var claims = new List<Claim> {
+                new(ClaimTypes.NameIdentifier, user.Id.ToString()),
+                new(ClaimTypes.Email, user.Email),
+                new(ClaimTypes.Role, user.Role)
+            };
+
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(configuration.GetValue<string>("JwtConfig:Key")!));
+
+            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha512);
+
+            var tokenDescriptor = new JwtSecurityToken(
+                    issuer: configuration.GetValue<string>("JwtConfig:Issuer"),
+                    audience: configuration.GetValue<string>("JwtConfig:Audience"),
+                    claims: claims,
+                    expires: DateTime.UtcNow.AddDays(1),
+                    signingCredentials: creds
+                );
+
+            return new JwtSecurityTokenHandler().WriteToken(tokenDescriptor);
+        }
+
+        public async Task EnsureAdminAccountExistsAsync()
+        {
+            var envVars = DotEnv.Read();
+
+            if (!await context.Users.AnyAsync(user => user.Email.ToLower() == envVars["ADMIN_EMAIL"].ToLower()))
+            {
+                Console.WriteLine("Creating admin account with email.");
+
+                var adminUser = new User
+                {
+                    Email = envVars["ADMIN_EMAIL"],
+                    Role = "Admin"
+                };
+
+                var hashedPassword = new PasswordHasher<User>().HashPassword(adminUser, envVars["ADMIN_PASSWORD"]);
+                adminUser.PasswordHash = hashedPassword;
+
+                context.Users.Add(adminUser);
+                await context.SaveChangesAsync();
+            }
+
+            Console.WriteLine("Admin account has been already created.");
+        }
+
+        private async Task<User?> ValidateRefreshTokenAsync(Guid userId, string refreshToken)
+        {
+            var user = await context.Users.FirstAsync(u => u.Id == userId);
+            if (user is null || user.RefreshToken != refreshToken || user.RefreshTokenExpiryTime <= DateTime.UtcNow)
+            {
+                return null;
+            }
+
+            return user;
+        }
+
+        public async Task<TokenResponseDto?> RefreshTokensAsync(RefreshTokenRequestDto request)
+        {
+            var user = await ValidateRefreshTokenAsync(request.UserId, request.RefreshToken);
+
+            if (user is null)
+            {
+                return null;
+            }
+
+            return await CreateTokenResponse(user);
+        }
+    }
+}

@@ -1,0 +1,6 @@
+@CarRentalBackend_HostAddress = http://localhost:5069
+
+POST {{CarRentalBackend_HostAddress}}/api/AuthController/register
+Accept: application/json
+
+###

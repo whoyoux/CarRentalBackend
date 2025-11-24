@@ -1,0 +1,35 @@
+Cars:
+	Model: 
+		id, license_plate, brand, model, year_of_production, color
+
+User: 
+	Model:
+		id, password_hash, email, first_name, last_name, phone, role
+
+Admin = User with admin role
+
+
+Actions:
+	Admin:
+		Add/Modify/Remove Cars
+	User: 
+		Register
+		Login
+		View Available Cars
+		Take Car for a Specified Period
+		Return Car
+		View Rental History
+
+
+Endpoints: 
+	POST /api/register - User Registration
+	POST /api/login - User Login
+
+	GET /api/cars - View Available Cars
+	POST /api/cars - Add New Car (Admin only)
+	PUT /api/cars/{id} - Modify Car Details (Admin only)
+	DELETE /api/cars/{id} - Remove Car (Admin only)
+
+	POST /api/rentals - Take Car for a Specified Period
+	POST /api/returns - Return Car
+	GET /api/rentals/history - View Rental History
