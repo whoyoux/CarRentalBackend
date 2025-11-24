@@ -72,8 +72,6 @@ namespace CarRentalBackend.Controllers
             var email = HttpContext.User.FindFirst(ClaimTypes.Email)?.Value;
             var role = HttpContext.User.FindFirst(ClaimTypes.Role)?.Value;
 
-            Console.WriteLine($"UserId: {userId}, Email: {email}, Role: {role}");
-
             if (userId == null || email == null || role == null)
             {
                 return Unauthorized("User is not authenticated.");
