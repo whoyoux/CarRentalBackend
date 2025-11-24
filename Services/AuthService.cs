@@ -33,11 +33,11 @@ namespace CarRentalBackend.Services
 
             return new LoginResponseDto
             {
+                Id = user.Id.ToString(),
                 AccessToken = tokens.AccessToken,
                 RefreshToken = tokens.RefreshToken,
                 Email = user.Email,
                 Role = user.Role,
-                Id = user.Id.ToString()
             };
         }
 
@@ -105,14 +105,17 @@ namespace CarRentalBackend.Services
 
             var envVars = DotEnv.Read();
 
+            var issuer = envVars["JWT_ISSUER"];
+            var audience = envVars["JWT_AUDIENCE"];
+            var jwt_key = envVars["JWT_KEY"];
 
-            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(envVars["JWT_KEY"]));
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwt_key));
 
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha512);
 
             var tokenDescriptor = new JwtSecurityToken(
-                    issuer: configuration.GetValue<string>("JwtConfig:Issuer"),
-                    audience: configuration.GetValue<string>("JwtConfig:Audience"),
+                    issuer: issuer,
+                    audience: audience,
                     claims: claims,
                     expires: DateTime.UtcNow.AddDays(1),
                     signingCredentials: creds

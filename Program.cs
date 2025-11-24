@@ -30,14 +30,18 @@ builder.Services.AddDbContext<DataContext>(options =>
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
+        var issuer = envVars["JWT_ISSUER"];
+        var audience = envVars["JWT_AUDIENCE"];
+        var jwt_key = envVars["JWT_KEY"];
+
         options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuer = true,
-            ValidIssuer = envVars["JWT_ISSUER"],
+            ValidIssuer = issuer,
             ValidateAudience = true,
-            ValidAudience = envVars["JWT_AUDIENCE"],
+            ValidAudience = audience,
             ValidateLifetime = true,
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(envVars["JWT_KEY"])),
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwt_key)),
             ValidateIssuerSigningKey = true
         };
     });
