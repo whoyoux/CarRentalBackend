@@ -1,5 +1,5 @@
 ﻿using CarRentalBackend.Data;
-using CarRentalBackend.Migrations;
+
 using CarRentalBackend.Models;
 using CarRentalBackend.ModelsDto;
 using dotenv.net;
@@ -13,7 +13,7 @@ using System.Text;
 
 namespace CarRentalBackend.Services
 {
-    public class AuthService(DataContext context, IConfiguration configuration) : IAuthService
+    public class AuthService(DataContext context) : IAuthService
     {
         public async Task<LoginResponseDto?> LoginAsync(UserDto request)
         {

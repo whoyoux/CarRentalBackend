@@ -1,6 +1,6 @@
-﻿namespace CarRentalBackend.Entities
+namespace CarRentalBackend.ModelsDto
 {
-    public class Car
+    public class CarDto
     {
         public int Id { get; set; }
         public required string Brand { get; set; }

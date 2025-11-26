@@ -1,6 +1,12 @@
-﻿namespace CarRentalBackend.Entities
+namespace CarRentalBackend.ModelsDto
 {
-    public class Car
+    public class ReservationPeriodDto
+    {
+        public DateTime StartDateTime { get; set; }
+        public DateTime EndDateTime { get; set; }
+    }
+
+    public class CarDetailsDto
     {
         public int Id { get; set; }
         public required string Brand { get; set; }
@@ -9,5 +15,6 @@
         public decimal PricePerDay { get; set; }
         public string? Description { get; set; }
         public string? ImageUrl { get; set; }
+        public List<ReservationPeriodDto> Reservations { get; set; } = new();
     }
 }

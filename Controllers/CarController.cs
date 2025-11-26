@@ -1,27 +1,29 @@
-﻿using CarRentalBackend.Data;
-using CarRentalBackend.Entities;
-using Microsoft.AspNetCore.Http;
+﻿using CarRentalBackend.ModelsDto;
+using CarRentalBackend.Services;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace CarRentalBackend.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class CarController : ControllerBase
+    public class CarController(ICarService carService) : ControllerBase
     {
-        private readonly DataContext _context;
-
-        public CarController(DataContext context)
+        [HttpGet]
+        public async Task<ActionResult<List<CarDto>>> GetAllCars()
         {
-            _context = context;
+            var cars = await carService.GetAllCarsAsync();
+            return Ok(cars);
         }
 
-        [HttpGet]
-        public async Task<ActionResult<List<Car>>> GetAllCars()
+        [HttpGet("{id}")]
+        public async Task<ActionResult<CarDetailsDto>> GetCarDetails(int id)
         {
-            var cars = await _context.Cars.ToListAsync();
-            return Ok(cars);
+            var car = await carService.GetCarDetailsAsync(id);
+            if (car == null)
+            {
+                return NotFound();
+            }
+            return Ok(car);
         }
     }
 }

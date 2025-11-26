@@ -41,6 +41,8 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     });
 
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<ICarService, CarService>();
+builder.Services.AddScoped<IReservationService, ReservationService>();
 
 builder.Services.AddCors(options =>
 {
@@ -80,6 +82,9 @@ using (var scope = app.Services.CreateScope())
 {
     var authService = scope.ServiceProvider.GetRequiredService<IAuthService>();
     await authService.EnsureAdminAccountExistsAsync();
+
+    var dataContext = scope.ServiceProvider.GetRequiredService<DataContext>();
+    await DataSeeder.SeedDataAsync(dataContext);
 }
 
 app.Run();
