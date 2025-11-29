@@ -87,7 +87,12 @@ namespace CarRentalBackend.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("Reservations");
+                    b.ToTable("Reservations", null, t =>
+                        {
+                            t.HasTrigger("LogReservationDelete");
+                        });
+
+                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
                 });
 
             modelBuilder.Entity("CarRentalBackend.Models.ReservationLog", b =>

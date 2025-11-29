@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CarRentalBackend.Migrations
 {
     [DbContext(typeof(DataContext))]
-    [Migration("20251129200653_.")]
-    partial class _
+    [Migration("20251129223053_init")]
+    partial class init
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -90,7 +90,12 @@ namespace CarRentalBackend.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("Reservations");
+                    b.ToTable("Reservations", null, t =>
+                        {
+                            t.HasTrigger("LogReservationDelete");
+                        });
+
+                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
                 });
 
             modelBuilder.Entity("CarRentalBackend.Models.ReservationLog", b =>
