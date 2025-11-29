@@ -74,7 +74,6 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-// Globalna obsługa błędów - musi być przed UseAuthorization
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 
 app.UseAuthentication();
@@ -93,8 +92,9 @@ using (var scope = app.Services.CreateScope())
         await dataContext.Database.MigrateAsync();
         Log.Information("Database migrations applied successfully.");
         
-        // Ensure stored procedures exist
+        // Ensure stored procedures and triggers exist
         await EnsureStoredProceduresExistAsync(dataContext);
+        await EnsureTriggerExistsAsync(dataContext);
     }
     catch (Exception ex)
     {
@@ -218,6 +218,56 @@ static async Task EnsureStoredProceduresExistAsync(DataContext context)
     catch (Exception ex)
     {
         Log.Warning(ex, "Error ensuring stored procedures exist. They may already exist or there was a connection issue.");
+    }
+}
+
+static async Task EnsureTriggerExistsAsync(DataContext context)
+{
+    try
+    {
+        // Check if LogReservationDelete trigger exists
+        var triggerExists = await context.Database
+            .SqlQueryRaw<int>("SELECT COUNT(*) AS Value FROM sys.triggers WHERE name = 'LogReservationDelete'")
+            .FirstOrDefaultAsync();
+
+        if (triggerExists == 0)
+        {
+            Log.Information("Creating LogReservationDelete trigger...");
+            
+            // Drop trigger if exists (just in case)
+            await context.Database.ExecuteSqlRawAsync(@"
+                IF EXISTS (SELECT * FROM sys.triggers WHERE name = 'LogReservationDelete')
+                    DROP TRIGGER [dbo].[LogReservationDelete];
+            ");
+
+            // Create trigger
+            await context.Database.ExecuteSqlRawAsync(@"
+                CREATE TRIGGER [dbo].[LogReservationDelete]
+                ON [dbo].[Reservations]
+                AFTER DELETE
+                AS
+                BEGIN
+                    SET NOCOUNT ON;
+                    
+                    INSERT INTO [dbo].[ReservationLogs] (ReservationId, UserId, Action, LogDate)
+                    SELECT 
+                        d.Id,
+                        d.UserId,
+                        'Deleted',
+                        GETDATE()
+                    FROM deleted d;
+                END
+            ");
+            Log.Information("LogReservationDelete trigger created successfully.");
+        }
+        else
+        {
+            Log.Information("LogReservationDelete trigger already exists.");
+        }
+    }
+    catch (Exception ex)
+    {
+        Log.Warning(ex, "Error ensuring trigger exists. It may already exist or there was a connection issue.");
     }
 }
 

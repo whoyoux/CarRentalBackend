@@ -89,6 +89,11 @@ namespace CarRentalBackend.Migrations
 
             // Trigger: LogReservationDelete - Logowanie usuniętych rezerwacji
             migrationBuilder.Sql(@"
+                IF EXISTS (SELECT * FROM sys.triggers WHERE name = 'LogReservationDelete')
+                    DROP TRIGGER [dbo].[LogReservationDelete];
+            ");
+            
+            migrationBuilder.Sql(@"
                 CREATE TRIGGER [dbo].[LogReservationDelete]
                 ON [dbo].[Reservations]
                 AFTER DELETE
@@ -96,16 +101,13 @@ namespace CarRentalBackend.Migrations
                 BEGIN
                     SET NOCOUNT ON;
                     
-                    IF EXISTS (SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'ReservationLogs')
-                    BEGIN
-                        INSERT INTO ReservationLogs (ReservationId, UserId, Action, LogDate)
-                        SELECT 
-                            d.Id,
-                            d.UserId,
-                            'Deleted',
-                            GETDATE()
-                        FROM deleted d;
-                    END
+                    INSERT INTO [dbo].[ReservationLogs] (ReservationId, UserId, Action, LogDate)
+                    SELECT 
+                        d.Id,
+                        d.UserId,
+                        'Deleted',
+                        GETDATE()
+                    FROM deleted d;
                 END
             ");
         }

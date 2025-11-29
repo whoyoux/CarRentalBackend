@@ -121,6 +121,36 @@ namespace CarRentalBackend.Controllers
                 return StatusCode(500, new { error = "An error occurred while processing your request." });
             }
         }
+
+        [HttpGet("reservation-logs")]
+        public async Task<ActionResult<List<ReservationLogDto>>> GetReservationLogs()
+        {
+            try
+            {
+                logger.LogInformation("Retrieving all reservation logs");
+
+                var logs = await context.ReservationLogs
+                    .OrderByDescending(log => log.LogDate)
+                    .Select(log => new ReservationLogDto
+                    {
+                        Id = log.Id,
+                        ReservationId = log.ReservationId,
+                        UserId = log.UserId.ToString(),
+                        Action = log.Action,
+                        LogDate = log.LogDate
+                    })
+                    .ToListAsync();
+
+                logger.LogInformation("Reservation logs retrieved successfully. Found {Count} logs", logs.Count);
+
+                return Ok(logs);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error retrieving reservation logs: {Message}. Stack trace: {StackTrace}", ex.Message, ex.StackTrace);
+                return StatusCode(500, new { error = "An error occurred while processing your request." });
+            }
+        }
     }
 }
 

@@ -65,6 +65,7 @@ Kontroler do generowania raportów i analiz. Dostępny tylko dla administratoró
 | `GET` | `/api/Reports/monthly-revenue` | Generowanie raportu miesięcznych przychodów. Parametry opcjonalne: `year`, `month`. | Admin |
 | `GET` | `/api/Reports/user-history/{userId}` | Pobranie historii rezerwacji użytkownika z statusami (Completed, Active, Upcoming). | Admin |
 | `GET` | `/api/Reports/discount/{userId}` | Obliczenie zniżki dla użytkownika na podstawie liczby rezerwacji (5% dla 5+, 10% dla 10+). | Admin |
+| `GET` | `/api/Reports/reservation-logs` | Pobranie wszystkich logów działań związanych z rezerwacjami dla wszystkich użytkowników w systemie. Logi są sortowane od najnowszych do najstarszych. Nie wymaga parametrów - zwraca kompletną historię wszystkich akcji na rezerwacjach. | Admin |
 
 ---
 
@@ -256,6 +257,8 @@ Automatycznie loguje usunięcie rezerwacji do tabeli `ReservationLogs`.
 - Możliwość audytu zmian w systemie
 - Logowanie działań użytkowników (wymaganie funkcjonalne projektu)
 
+**Uwaga:** Obecnie trigger loguje tylko akcję "Deleted". W przyszłości można rozszerzyć system o logowanie innych akcji (np. "Created", "Cancelled") poprzez dodatkowe triggery lub bezpośrednie zapisywanie w kodzie aplikacji.
+
 ---
 
 ## Autoryzacja i Uwierzytelnianie
@@ -348,3 +351,17 @@ System używa Serilog do logowania zdarzeń i błędów.
 **Dodatkowe logowanie:**
 - `ReservationLogs` - Tabela w bazie danych do logowania działań na rezerwacjach
 - Automatyczne wypełnianie przez trigger `LogReservationDelete`
+- Endpoint API: `GET /api/Reports/reservation-logs` - dostęp do wszystkich logów rezerwacji dla wszystkich użytkowników w systemie (tylko Admin, nie wymaga parametrów)
+
+**Format odpowiedzi dla `/api/Reports/reservation-logs`:**
+```json
+[
+  {
+    "id": 1,
+    "reservationId": 5,
+    "userId": "123e4567-e89b-12d3-a456-426614174000",
+    "action": "Deleted",
+    "logDate": "2024-12-01T10:30:00Z"
+  }
+]
+```
