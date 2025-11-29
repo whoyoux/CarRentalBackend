@@ -4,18 +4,12 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CarRentalBackend.Services
 {
-    public class CarService : ICarService
+    public class CarService(DataContext context) : ICarService
     {
-        private readonly DataContext _context;
-
-        public CarService(DataContext context)
-        {
-            _context = context;
-        }
 
         public async Task<List<CarDto>> GetAllCarsAsync()
         {
-            return await _context.Cars
+            return await context.Cars
                 .Select(c => new CarDto
                 {
                     Id = c.Id,
@@ -31,7 +25,7 @@ namespace CarRentalBackend.Services
 
         public async Task<CarDetailsDto?> GetCarDetailsAsync(int carId)
         {
-            var car = await _context.Cars
+            var car = await context.Cars
                 .Where(c => c.Id == carId)
                 .Select(c => new CarDetailsDto
                 {
@@ -42,7 +36,7 @@ namespace CarRentalBackend.Services
                     PricePerDay = c.PricePerDay,
                     Description = c.Description,
                     ImageUrl = c.ImageUrl,
-                    Reservations = _context.Reservations
+                    Reservations = context.Reservations
                         .Where(r => r.CarId == carId && r.EndDateTime > DateTime.UtcNow)
                         .OrderBy(r => r.StartDateTime)
                         .Select(r => new ReservationPeriodDto
@@ -55,6 +49,76 @@ namespace CarRentalBackend.Services
                 .FirstOrDefaultAsync();
 
             return car;
+        }
+
+        public async Task<CarDto?> UpdateCarAsync(int carId, CarDto carDto)
+        {
+            var car = await context.Cars.FindAsync(carId);
+            if (car == null)
+            {
+                return null;
+            }
+
+            car.Brand = carDto.Brand;
+            car.Model = carDto.Model;
+            car.Year = carDto.Year;
+            car.PricePerDay = carDto.PricePerDay;
+            car.Description = carDto.Description;
+            car.ImageUrl = carDto.ImageUrl;
+
+            await context.SaveChangesAsync();
+
+            return new CarDto
+            {
+                Id = car.Id,
+                Brand = car.Brand,
+                Model = car.Model,
+                Year = car.Year,
+                PricePerDay = car.PricePerDay,
+                Description = car.Description,
+                ImageUrl = car.ImageUrl
+            };
+        }
+
+        public async Task<CarDto> CreateCarAsync(CarDto carDto)
+        {
+            var car = new Models.Car
+            {
+                Brand = carDto.Brand,
+                Model = carDto.Model,
+                Year = carDto.Year,
+                PricePerDay = carDto.PricePerDay,
+                Description = carDto.Description,
+                ImageUrl = carDto.ImageUrl
+            };
+
+            context.Cars.Add(car);
+            await context.SaveChangesAsync();
+
+            return new CarDto
+            {
+                Id = car.Id,
+                Brand = car.Brand,
+                Model = car.Model,
+                Year = car.Year,
+                PricePerDay = car.PricePerDay,
+                Description = car.Description,
+                ImageUrl = car.ImageUrl
+            };
+        }
+
+        public async Task<bool> DeleteCarAsync(int carId)
+        {
+            var car = await context.Cars.FindAsync(carId);
+            if (car == null)
+            {
+                return false;
+            }
+
+            context.Cars.Remove(car);
+            await context.SaveChangesAsync();
+
+            return true;
         }
     }
 }

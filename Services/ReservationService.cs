@@ -1,18 +1,12 @@
 using CarRentalBackend.Data;
-using CarRentalBackend.Entities;
+using CarRentalBackend.Models;
 using CarRentalBackend.ModelsDto;
 using Microsoft.EntityFrameworkCore;
 
 namespace CarRentalBackend.Services
 {
-    public class ReservationService : IReservationService
+    public class ReservationService(DataContext context) : IReservationService
     {
-        private readonly DataContext _context;
-
-        public ReservationService(DataContext context)
-        {
-            _context = context;
-        }
 
         public async Task<ReservationDto?> CreateReservationAsync(Guid userId, CreateReservationDto dto)
         {
@@ -22,20 +16,23 @@ namespace CarRentalBackend.Services
                 throw new InvalidOperationException("End date must be after start date.");
             }
 
-            if (dto.StartDateTime < DateTime.UtcNow)
+            // Allow reservations from today onwards, accounting for timezone differences
+            // Subtract 1 day to account for timezone conversion (e.g., UTC+1 sends previous day in UTC)
+            var todayMinusOneDay = DateTime.UtcNow.Date.AddDays(-1);
+            if (dto.StartDateTime.Date < todayMinusOneDay)
             {
                 throw new InvalidOperationException("Cannot reserve in the past.");
             }
 
             // Check if car exists
-            var car = await _context.Cars.FindAsync(dto.CarId);
+            var car = await context.Cars.FindAsync(dto.CarId);
             if (car == null)
             {
                 return null;
             }
 
             // Check if car is available
-            var hasConflict = await _context.Reservations
+            var hasConflict = await context.Reservations
                 .AnyAsync(r => r.CarId == dto.CarId &&
                     ((dto.StartDateTime >= r.StartDateTime && dto.StartDateTime < r.EndDateTime) ||
                      (dto.EndDateTime > r.StartDateTime && dto.EndDateTime <= r.EndDateTime) ||
@@ -61,8 +58,8 @@ namespace CarRentalBackend.Services
                 CreatedAt = DateTime.UtcNow
             };
 
-            _context.Reservations.Add(reservation);
-            await _context.SaveChangesAsync();
+            context.Reservations.Add(reservation);
+            await context.SaveChangesAsync();
 
             return new ReservationDto
             {
@@ -79,7 +76,7 @@ namespace CarRentalBackend.Services
 
         public async Task<bool> CancelReservationAsync(int reservationId, Guid userId)
         {
-            var reservation = await _context.Reservations
+            var reservation = await context.Reservations
                 .FirstOrDefaultAsync(r => r.Id == reservationId && r.UserId == userId);
 
             if (reservation == null)
@@ -87,15 +84,42 @@ namespace CarRentalBackend.Services
                 return false;
             }
 
-            _context.Reservations.Remove(reservation);
-            await _context.SaveChangesAsync();
+            // Check if reservation end date is in the past
+            if (reservation.EndDateTime < DateTime.UtcNow)
+            {
+                throw new InvalidOperationException("Cannot cancel a reservation that has already ended.");
+            }
+
+            context.Reservations.Remove(reservation);
+            await context.SaveChangesAsync();
 
             return true;
         }
 
+        public async Task<List<ReservationDto>> GetUserReservationsAsync(Guid userId)
+        {
+            var reservations = await context.Reservations
+                .Where(r => r.UserId == userId)
+                .Include(r => r.Car)
+                .OrderByDescending(r => r.CreatedAt)
+                .ToListAsync();
+
+            return reservations.Select(r => new ReservationDto
+            {
+                Id = r.Id,
+                CarId = r.CarId,
+                CarBrand = r.Car?.Brand ?? "Unknown",
+                CarModel = r.Car?.Model ?? "Unknown",
+                StartDateTime = r.StartDateTime,
+                EndDateTime = r.EndDateTime,
+                TotalPrice = r.TotalPrice,
+                CreatedAt = r.CreatedAt
+            }).ToList();
+        }
+
         public async Task<List<AdminReservationDto>> GetAllReservationsAsync()
         {
-            var reservations = await _context.Reservations
+            var reservations = await context.Reservations
                 .Include(r => r.Car)
                 .Include(r => r.User)
                 .OrderByDescending(r => r.CreatedAt)
@@ -118,7 +142,7 @@ namespace CarRentalBackend.Services
 
         public async Task<bool> AdminCancelReservationAsync(int reservationId)
         {
-            var reservation = await _context.Reservations
+            var reservation = await context.Reservations
                 .FirstOrDefaultAsync(r => r.Id == reservationId);
 
             if (reservation == null)
@@ -126,8 +150,14 @@ namespace CarRentalBackend.Services
                 return false;
             }
 
-            _context.Reservations.Remove(reservation);
-            await _context.SaveChangesAsync();
+            // Check if reservation end date is in the past
+            if (reservation.EndDateTime < DateTime.UtcNow)
+            {
+                throw new InvalidOperationException("Cannot cancel a reservation that has already ended.");
+            }
+
+            context.Reservations.Remove(reservation);
+            await context.SaveChangesAsync();
 
             return true;
         }

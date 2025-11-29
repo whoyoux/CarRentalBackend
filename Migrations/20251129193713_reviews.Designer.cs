@@ -4,6 +4,7 @@ using CarRentalBackend.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CarRentalBackend.Migrations
 {
     [DbContext(typeof(DataContext))]
-    partial class DataContextModelSnapshot : ModelSnapshot
+    [Migration("20251129193713_reviews")]
+    partial class reviews
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -22,7 +25,7 @@ namespace CarRentalBackend.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
-            modelBuilder.Entity("CarRentalBackend.Models.Car", b =>
+            modelBuilder.Entity("CarRentalBackend.Entities.Car", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -55,7 +58,7 @@ namespace CarRentalBackend.Migrations
                     b.ToTable("Cars");
                 });
 
-            modelBuilder.Entity("CarRentalBackend.Models.Reservation", b =>
+            modelBuilder.Entity("CarRentalBackend.Entities.Reservation", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -90,7 +93,7 @@ namespace CarRentalBackend.Migrations
                     b.ToTable("Reservations");
                 });
 
-            modelBuilder.Entity("CarRentalBackend.Models.ReservationLog", b =>
+            modelBuilder.Entity("CarRentalBackend.Entities.ReservationLog", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -116,7 +119,7 @@ namespace CarRentalBackend.Migrations
                     b.ToTable("ReservationLogs");
                 });
 
-            modelBuilder.Entity("CarRentalBackend.Models.Review", b =>
+            modelBuilder.Entity("CarRentalBackend.Entities.Review", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -177,9 +180,9 @@ namespace CarRentalBackend.Migrations
                     b.ToTable("Users");
                 });
 
-            modelBuilder.Entity("CarRentalBackend.Models.Reservation", b =>
+            modelBuilder.Entity("CarRentalBackend.Entities.Reservation", b =>
                 {
-                    b.HasOne("CarRentalBackend.Models.Car", "Car")
+                    b.HasOne("CarRentalBackend.Entities.Car", "Car")
                         .WithMany()
                         .HasForeignKey("CarId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -196,9 +199,9 @@ namespace CarRentalBackend.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("CarRentalBackend.Models.Review", b =>
+            modelBuilder.Entity("CarRentalBackend.Entities.Review", b =>
                 {
-                    b.HasOne("CarRentalBackend.Models.Car", "Car")
+                    b.HasOne("CarRentalBackend.Entities.Car", "Car")
                         .WithMany()
                         .HasForeignKey("CarId")
                         .OnDelete(DeleteBehavior.Cascade)

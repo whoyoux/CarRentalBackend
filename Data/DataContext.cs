@@ -1,5 +1,4 @@
-﻿using CarRentalBackend.Entities;
-using CarRentalBackend.Models;
+﻿using CarRentalBackend.Models;
 using Microsoft.EntityFrameworkCore;
 
 namespace CarRentalBackend.Data
@@ -16,5 +15,9 @@ namespace CarRentalBackend.Data
         public required DbSet<User> Users { get; set; }
 
         public required DbSet<Reservation> Reservations { get; set; }
+
+        public required DbSet<Review> Reviews { get; set; }
+
+        public required DbSet<ReservationLog> ReservationLogs { get; set; }
     }
 }

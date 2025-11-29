@@ -42,6 +42,20 @@ namespace CarRentalBackend.Controllers
         }
 
         [Authorize]
+        [HttpGet]
+        public async Task<ActionResult<List<ReservationDto>>> GetUserReservations()
+        {
+            var userIdClaim = HttpContext.User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (userIdClaim == null || !Guid.TryParse(userIdClaim, out var userId))
+            {
+                return Unauthorized("User is not authenticated.");
+            }
+
+            var reservations = await reservationService.GetUserReservationsAsync(userId);
+            return Ok(reservations);
+        }
+
+        [Authorize]
         [HttpDelete("{id}")]
         public async Task<ActionResult> CancelReservation(int id)
         {
@@ -51,13 +65,20 @@ namespace CarRentalBackend.Controllers
                 return Unauthorized("User is not authenticated.");
             }
 
-            var success = await reservationService.CancelReservationAsync(id, userId);
-            if (!success)
+            try
             {
-                return NotFound("Reservation not found or you don't have permission to cancel it.");
-            }
+                var success = await reservationService.CancelReservationAsync(id, userId);
+                if (!success)
+                {
+                    return NotFound("Reservation not found or you don't have permission to cancel it.");
+                }
 
-            return NoContent();
+                return Ok(new { success = true });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(ex.Message);
+            }
         }
 
         [Authorize(Roles = "Admin")]
@@ -72,13 +93,20 @@ namespace CarRentalBackend.Controllers
         [HttpDelete("admin/{id}")]
         public async Task<ActionResult> AdminCancelReservation(int id)
         {
-            var success = await reservationService.AdminCancelReservationAsync(id);
-            if (!success)
+            try
             {
-                return NotFound("Reservation not found.");
-            }
+                var success = await reservationService.AdminCancelReservationAsync(id);
+                if (!success)
+                {
+                    return NotFound("Reservation not found.");
+                }
 
-            return NoContent();
+                return Ok(new { success = true });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(ex.Message);
+            }
         }
     }
 }

@@ -1,4 +1,4 @@
-﻿namespace CarRentalBackend.Entities
+﻿namespace CarRentalBackend.Models
 {
     public class Car
     {

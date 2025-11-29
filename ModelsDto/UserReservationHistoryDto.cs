@@ -1,19 +1,16 @@
-using CarRentalBackend.Models;
-
-namespace CarRentalBackend.Entities
+namespace CarRentalBackend.ModelsDto
 {
-    public class Reservation
+    public class UserReservationHistoryDto
     {
         public int Id { get; set; }
         public int CarId { get; set; }
-        public Guid UserId { get; set; }
+        public string Brand { get; set; } = string.Empty;
+        public string Model { get; set; } = string.Empty;
         public DateTime StartDateTime { get; set; }
         public DateTime EndDateTime { get; set; }
         public decimal TotalPrice { get; set; }
         public DateTime CreatedAt { get; set; }
-
-        // Navigation properties
-        public Car? Car { get; set; }
-        public User? User { get; set; }
+        public string Status { get; set; } = string.Empty;
     }
 }
+
