@@ -4,15 +4,6 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CarRentalBackend.Data
 {
-    /// <summary>
-    /// Klasa odpowiedzialna za seedowanie danych testowych do bazy danych.
-    /// Seeduje: 5 użytkowników, 12 samochodów, ~20 rezerwacji (stare, aktualne, przyszłe), ~7 recenzji.
-    /// 
-    /// Aby zresetować bazę danych i ponownie zaseedować dane:
-    /// dotnet ef database drop --force && dotnet ef database update && dotnet run
-    /// 
-    /// Więcej informacji: RESET_DATABASE.md
-    /// </summary>
     public static class DataSeeder
     {
         public static async Task SeedDataAsync(DataContext context)
@@ -228,7 +219,6 @@ namespace CarRentalBackend.Data
             var random = new Random();
             var reservations = new List<Reservation>();
 
-            // Create old reservations (completed, 60-120 days ago)
             for (int i = 0; i < 8; i++)
             {
                 var user = users[random.Next(users.Count)];
@@ -250,7 +240,6 @@ namespace CarRentalBackend.Data
                 });
             }
 
-            // Create current/active reservations (started but not ended)
             for (int i = 0; i < 5; i++)
             {
                 var user = users[random.Next(users.Count)];
@@ -272,7 +261,6 @@ namespace CarRentalBackend.Data
                 });
             }
 
-            // Create upcoming reservations (future dates)
             for (int i = 0; i < 7; i++)
             {
                 var user = users[random.Next(users.Count)];
@@ -322,7 +310,6 @@ namespace CarRentalBackend.Data
 
             Console.WriteLine("Seeding reviews...");
 
-            // Get first 3 users who have completed reservations
             var usersWithReservations = reservations
                 .GroupBy(r => r.UserId)
                 .Where(g => g.Any())
@@ -337,12 +324,11 @@ namespace CarRentalBackend.Data
 
             var reviews = new List<Review>();
 
-            // User 1 reviews (Emily Chen)
             if (usersWithReservations.Count > 0)
             {
                 var user1Id = usersWithReservations[0];
                 var user1Reservations = reservations.Where(r => r.UserId == user1Id).Take(3).ToList();
-                
+
                 if (user1Reservations.Count > 0)
                 {
                     reviews.Add(new Review
@@ -367,12 +353,11 @@ namespace CarRentalBackend.Data
                 }
             }
 
-            // User 2 reviews (David Martinez)
             if (usersWithReservations.Count > 1)
             {
                 var user2Id = usersWithReservations[1];
                 var user2Reservations = reservations.Where(r => r.UserId == user2Id).Take(3).ToList();
-                
+
                 if (user2Reservations.Count > 0)
                 {
                     reviews.Add(new Review
@@ -408,12 +393,11 @@ namespace CarRentalBackend.Data
                 }
             }
 
-            // User 3 reviews (Sophia Anderson)
             if (usersWithReservations.Count > 2)
             {
                 var user3Id = usersWithReservations[2];
                 var user3Reservations = reservations.Where(r => r.UserId == user3Id).Take(2).ToList();
-                
+
                 if (user3Reservations.Count > 0)
                 {
                     reviews.Add(new Review

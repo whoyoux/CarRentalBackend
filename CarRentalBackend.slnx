@@ -1,3 +1,4 @@
 <Solution>
+  <Project Path="../CarRentalBackend.Tests/CarRentalBackend.Tests.csproj" Id="fac3efa6-24c1-4511-965f-597c0a1ff349" />
   <Project Path="CarRentalBackend.csproj" />
 </Solution>

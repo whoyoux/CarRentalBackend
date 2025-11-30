@@ -29,7 +29,6 @@ namespace CarRentalBackend.Services
 
         public async Task<ReviewDto?> CreateReviewAsync(Guid userId, CreateReviewDto dto)
         {
-            // Sprawdź czy użytkownik już dodał recenzję dla tego samochodu
             var existingReview = await context.Reviews
                 .FirstOrDefaultAsync(r => r.CarId == dto.CarId && r.UserId == userId);
 
@@ -38,7 +37,6 @@ namespace CarRentalBackend.Services
                 throw new InvalidOperationException("You have already reviewed this car.");
             }
 
-            // Sprawdź czy samochód istnieje
             var carExists = await context.Cars.AnyAsync(c => c.Id == dto.CarId);
             if (!carExists)
             {

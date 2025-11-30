@@ -104,10 +104,9 @@ namespace CarRentalBackend.Services
             };
 
             var envVars = DotEnv.Read();
-
-            var issuer = envVars["JWT_ISSUER"];
-            var audience = envVars["JWT_AUDIENCE"];
-            var jwt_key = envVars["JWT_KEY"];
+            var issuer = Environment.GetEnvironmentVariable("JWT_ISSUER") ?? (envVars.TryGetValue("JWT_ISSUER", out var issuerVal) ? issuerVal : throw new InvalidOperationException("JWT_ISSUER environment variable is not set"));
+            var audience = Environment.GetEnvironmentVariable("JWT_AUDIENCE") ?? (envVars.TryGetValue("JWT_AUDIENCE", out var audienceVal) ? audienceVal : throw new InvalidOperationException("JWT_AUDIENCE environment variable is not set"));
+            var jwt_key = Environment.GetEnvironmentVariable("JWT_KEY") ?? (envVars.TryGetValue("JWT_KEY", out var keyVal) ? keyVal : throw new InvalidOperationException("JWT_KEY environment variable is not set"));
 
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwt_key));
 
@@ -127,18 +126,20 @@ namespace CarRentalBackend.Services
         public async Task EnsureAdminAccountExistsAsync()
         {
             var envVars = DotEnv.Read();
+            var adminEmail = Environment.GetEnvironmentVariable("ADMIN_EMAIL") ?? (envVars.TryGetValue("ADMIN_EMAIL", out var emailVal) ? emailVal : "admin@carrental.com");
+            var adminPassword = Environment.GetEnvironmentVariable("ADMIN_PASSWORD") ?? (envVars.TryGetValue("ADMIN_PASSWORD", out var passVal) ? passVal : "adminadmin");
 
-            if (!await context.Users.AnyAsync(user => user.Email.ToLower() == envVars["ADMIN_EMAIL"].ToLower()))
+            if (!await context.Users.AnyAsync(user => user.Email.ToLower() == adminEmail.ToLower()))
             {
-                Console.WriteLine("Creating admin account with email.");
+                Console.WriteLine($"Creating admin account with email: {adminEmail}.");
 
                 var adminUser = new User
                 {
-                    Email = envVars["ADMIN_EMAIL"],
+                    Email = adminEmail,
                     Role = "Admin"
                 };
 
-                var hashedPassword = new PasswordHasher<User>().HashPassword(adminUser, envVars["ADMIN_PASSWORD"]);
+                var hashedPassword = new PasswordHasher<User>().HashPassword(adminUser, adminPassword);
                 adminUser.PasswordHash = hashedPassword;
 
                 context.Users.Add(adminUser);

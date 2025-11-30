@@ -25,8 +25,6 @@ namespace CarRentalBackend.Data
         {
             base.OnModelCreating(modelBuilder);
 
-            // Konfiguracja dla tabeli Reservations - informuje EF Core o triggerze
-            // To automatycznie wyłącza OUTPUT clause dla operacji DELETE/UPDATE
             modelBuilder.Entity<Reservation>(entity =>
             {
                 entity.ToTable("Reservations", t => t.HasTrigger("LogReservationDelete"));

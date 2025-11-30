@@ -9,7 +9,12 @@ using Scalar.AspNetCore;
 using Serilog;
 using System.Text;
 
-DotEnv.Load();
+// Load .env file only if it exists (for local development)
+// In Docker, environment variables are passed directly via docker-compose
+if (File.Exists(".env"))
+{
+    DotEnv.Load();
+}
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -22,20 +27,26 @@ builder.Host.UseSerilog();
 
 var envVars = DotEnv.Read();
 
+static string GetEnvVar(string key, IDictionary<string, string> envVars)
+{
+    return Environment.GetEnvironmentVariable(key) ?? (envVars.TryGetValue(key, out var value) ? value : throw new InvalidOperationException($"{key} environment variable is not set"));
+}
+
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 
 builder.Services.AddDbContext<DataContext>(options =>
 {
-    options.UseSqlServer(envVars["DB_CONNECTION"]);
+    var connectionString = GetEnvVar("DB_CONNECTION", envVars);
+    options.UseSqlServer(connectionString);
 });
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
-        var issuer = envVars["JWT_ISSUER"];
-        var audience = envVars["JWT_AUDIENCE"];
-        var jwt_key = envVars["JWT_KEY"];
+        var issuer = GetEnvVar("JWT_ISSUER", envVars);
+        var audience = GetEnvVar("JWT_AUDIENCE", envVars);
+        var jwt_key = GetEnvVar("JWT_KEY", envVars);
 
         options.TokenValidationParameters = new TokenValidationParameters
         {
@@ -58,7 +69,8 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
-        policy.WithOrigins(envVars["FRONTEND_URL"])
+        var frontendUrl = GetEnvVar("FRONTEND_URL", envVars);
+        policy.WithOrigins(frontendUrl)
               .AllowAnyHeader()
               .AllowAnyMethod();
     });
@@ -85,14 +97,12 @@ app.MapControllers();
 
 using (var scope = app.Services.CreateScope())
 {
-    // Apply pending migrations
     var dataContext = scope.ServiceProvider.GetRequiredService<DataContext>();
     try
     {
         await dataContext.Database.MigrateAsync();
         Log.Information("Database migrations applied successfully.");
-        
-        // Ensure stored procedures and triggers exist
+
         await EnsureStoredProceduresExistAsync(dataContext);
         await EnsureTriggerExistsAsync(dataContext);
     }
@@ -112,7 +122,6 @@ static async Task EnsureStoredProceduresExistAsync(DataContext context)
 {
     try
     {
-        // Check if GetMonthlyRevenue procedure exists
         var procedureExists = await context.Database
             .SqlQueryRaw<int>("SELECT COUNT(*) AS Value FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[GetMonthlyRevenue]') AND type in (N'P', N'PC')")
             .FirstOrDefaultAsync();
@@ -146,7 +155,6 @@ static async Task EnsureStoredProceduresExistAsync(DataContext context)
             Log.Information("GetMonthlyRevenue stored procedure created successfully.");
         }
 
-        // Check if GetUserReservationHistory procedure exists
         var userHistoryExists = await context.Database
             .SqlQueryRaw<int>("SELECT COUNT(*) AS Value FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[GetUserReservationHistory]') AND type in (N'P', N'PC')")
             .FirstOrDefaultAsync();
@@ -184,7 +192,6 @@ static async Task EnsureStoredProceduresExistAsync(DataContext context)
             Log.Information("GetUserReservationHistory stored procedure created successfully.");
         }
 
-        // Check if CalculateDiscount function exists
         var functionExists = await context.Database
             .SqlQueryRaw<int>("SELECT COUNT(*) AS Value FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[CalculateDiscount]') AND type in (N'FN', N'IF', N'TF', N'FS', N'FT')")
             .FirstOrDefaultAsync();
@@ -225,7 +232,6 @@ static async Task EnsureTriggerExistsAsync(DataContext context)
 {
     try
     {
-        // Check if LogReservationDelete trigger exists
         var triggerExists = await context.Database
             .SqlQueryRaw<int>("SELECT COUNT(*) AS Value FROM sys.triggers WHERE name = 'LogReservationDelete'")
             .FirstOrDefaultAsync();
@@ -233,14 +239,12 @@ static async Task EnsureTriggerExistsAsync(DataContext context)
         if (triggerExists == 0)
         {
             Log.Information("Creating LogReservationDelete trigger...");
-            
-            // Drop trigger if exists (just in case)
+
             await context.Database.ExecuteSqlRawAsync(@"
                 IF EXISTS (SELECT * FROM sys.triggers WHERE name = 'LogReservationDelete')
                     DROP TRIGGER [dbo].[LogReservationDelete];
             ");
 
-            // Create trigger
             await context.Database.ExecuteSqlRawAsync(@"
                 CREATE TRIGGER [dbo].[LogReservationDelete]
                 ON [dbo].[Reservations]

@@ -10,28 +10,23 @@ namespace CarRentalBackend.Services
 
         public async Task<ReservationDto?> CreateReservationAsync(Guid userId, CreateReservationDto dto)
         {
-            // Validate dates
             if (dto.StartDateTime >= dto.EndDateTime)
             {
                 throw new InvalidOperationException("End date must be after start date.");
             }
 
-            // Allow reservations from today onwards, accounting for timezone differences
-            // Subtract 1 day to account for timezone conversion (e.g., UTC+1 sends previous day in UTC)
             var todayMinusOneDay = DateTime.UtcNow.Date.AddDays(-1);
             if (dto.StartDateTime.Date < todayMinusOneDay)
             {
                 throw new InvalidOperationException("Cannot reserve in the past.");
             }
 
-            // Check if car exists
             var car = await context.Cars.FindAsync(dto.CarId);
             if (car == null)
             {
                 return null;
             }
 
-            // Check if car is available
             var hasConflict = await context.Reservations
                 .AnyAsync(r => r.CarId == dto.CarId &&
                     ((dto.StartDateTime >= r.StartDateTime && dto.StartDateTime < r.EndDateTime) ||
@@ -43,11 +38,9 @@ namespace CarRentalBackend.Services
                 throw new InvalidOperationException("Car is not available for the selected dates.");
             }
 
-            // Calculate total price
             var days = (dto.EndDateTime - dto.StartDateTime).TotalDays;
             var totalPrice = (decimal)days * car.PricePerDay;
 
-            // Create reservation
             var reservation = new Reservation
             {
                 CarId = dto.CarId,
@@ -84,7 +77,6 @@ namespace CarRentalBackend.Services
                 return false;
             }
 
-            // Check if reservation end date is in the past
             if (reservation.EndDateTime < DateTime.UtcNow)
             {
                 throw new InvalidOperationException("Cannot cancel a reservation that has already ended.");
@@ -150,7 +142,6 @@ namespace CarRentalBackend.Services
                 return false;
             }
 
-            // Check if reservation end date is in the past
             if (reservation.EndDateTime < DateTime.UtcNow)
             {
                 throw new InvalidOperationException("Cannot cancel a reservation that has already ended.");

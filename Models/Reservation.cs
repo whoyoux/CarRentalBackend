@@ -10,7 +10,6 @@ namespace CarRentalBackend.Models
         public decimal TotalPrice { get; set; }
         public DateTime CreatedAt { get; set; }
 
-        // Navigation properties
         public Car? Car { get; set; }
         public User? User { get; set; }
     }

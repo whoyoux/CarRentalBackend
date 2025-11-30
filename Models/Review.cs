@@ -16,7 +16,6 @@ namespace CarRentalBackend.Models
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
-        // Navigation properties
         public Car? Car { get; set; }
         public User? User { get; set; }
     }
